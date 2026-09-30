@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged with the generated Info.plist; keys with dictionary values can't be build settings. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Navidrome is plain HTTP on the LAN. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Daptastic connects to your Navidrome server on the local network to fetch your starred music and playlists.</string>
+</dict>
+</plist>

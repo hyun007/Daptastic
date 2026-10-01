@@ -8,6 +8,9 @@ showing up as real playlists on the device.
 Built and tested with a **TempoTec Variations V1** (HiBy OS). Other HiBy OS players that
 read playlists from `playlist_data/` will probably work too.
 
+**[Download the latest version](https://github.com/hyun007/Daptastic/releases/latest/download/Daptastic.dmg)**
+· [Website](https://hyun007.github.io/Daptastic/)
+
 ## What it does
 
 - **Syncs** every starred album (all tracks), every starred track, and every playlist.
@@ -36,8 +39,11 @@ read playlists from `playlist_data/` will probably work too.
 
 ## Setup
 
-1. **Build and install:** `scripts/install-app.sh` builds a Release copy and installs it
-   to `/Applications`.
+1. **Install:** download `Daptastic.dmg` from the latest release, open it and drag Daptastic
+   into Applications. It isn't notarised yet, so on first launch macOS says it can't verify
+   it: open System Settings → Privacy & Security and click **Open Anyway**. Or build it
+   yourself: `scripts/install-app.sh` builds a Release copy and installs it to
+   `/Applications`.
    - To sign with your own Apple Development certificate (so the Keychain doesn't ask for
      access after every rebuild), copy `Config/Signing.xcconfig.example` to
      `Config/Signing.xcconfig` and set your team ID. Without it, builds are ad-hoc signed.

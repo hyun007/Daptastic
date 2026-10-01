@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daptastic — your Navidrome favourites, on your music player</title>
+<meta name="description" content="A free macOS menu-bar app that copies your starred albums, tracks and playlists from Navidrome to your digital audio player — lossless, and only what changed.">
+<meta property="og:title" content="Daptastic">
+<meta property="og:description" content="Your Navidrome favourites, on your music player. Free and open source for macOS.">
+<meta property="og:image" content="icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root {
+    --bg: #fffaf3;
+    --surface: #ffffff;
+    --text: #23202b;
+    --muted: #6b6474;
+    --line: #efe4d3;
+    --accent: #ff6a3d;
+    --accent-2: #ffb347;
+    --navy: #1f2340;
+    --gold: #ffc93c;
+    --code: #f6eee2;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17151c;
+      --surface: #211e28;
+      --text: #f4efe8;
+      --muted: #a69fb0;
+      --line: #322d3b;
+      --code: #2a2632;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 24px; }
+  a { color: var(--accent); }
+  a:hover { text-decoration-thickness: 2px; }
+
+  /* Top bar */
+  header.top { padding-block: 18px; }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; }
+  .brand img { width: 28px; height: 28px; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  nav a:hover { color: var(--text); }
+
+  /* Hero */
+  .hero { text-align: center; padding-block: 56px 72px; }
+  .hero img.icon { width: 168px; height: 168px; filter: drop-shadow(0 18px 36px rgba(255, 106, 61, .28)); }
+  .hero h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.08; letter-spacing: -0.02em; margin: 28px auto 16px; max-width: 14ch; }
+  .hero h1 em { font-style: normal; background: linear-gradient(180deg, var(--accent-2), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 40em; margin: 0 auto 32px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .button {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 26px; border-radius: 14px; font-weight: 600; text-decoration: none; font-size: 17px;
+  }
+  .button.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: #fff; box-shadow: 0 8px 22px rgba(255, 106, 61, .35); }
+  .button.primary:hover { filter: brightness(1.05); }
+  .button.secondary { color: var(--text); border: 1px solid var(--line); background: var(--surface); }
+  .button svg { width: 20px; height: 20px; }
+  .fine { margin-top: 16px; font-size: 14px; color: var(--muted); }
+
+  /* Sections */
+  section { padding-block: 56px; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -0.01em; margin: 0 0 8px; }
+  .section-lead { color: var(--muted); margin: 0 0 32px; max-width: 42em; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; counter-reset: step; }
+  .step { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--navy); color: var(--gold); font-weight: 700; margin-bottom: 12px;
+  }
+  .step h3, .feature h3 { margin: 0 0 6px; font-size: 18px; }
+  .step p, .feature p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px 32px; }
+  .feature { padding-left: 16px; border-left: 3px solid var(--gold); }
+
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+  ul.plain { margin: 0; padding-left: 20px; }
+  ul.plain li { margin-bottom: 8px; }
+  ol.install { margin: 0; padding-left: 22px; }
+  ol.install li { margin-bottom: 12px; }
+  .note {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent-2);
+    border-radius: 12px; padding: 16px 20px; margin-top: 20px; font-size: 16px; color: var(--muted);
+  }
+  .note strong { color: var(--text); }
+  code { background: var(--code); border-radius: 6px; padding: 1px 6px; font-size: 0.9em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  details { border-bottom: 1px solid var(--line); padding-block: 14px; }
+  details summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 22px; line-height: 1; }
+  details[open] summary::after { content: "−"; }
+  details p { color: var(--muted); margin: 10px 0 0; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 32px 48px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 560px) {
+    nav a:not(.keep) { display: none; }
+    .hero { padding-block: 32px 56px; }
+    .hero img.icon { width: 128px; height: 128px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="favicon.png" alt="">Daptastic</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+      <a class="keep" href="https://github.com/hyun007/Daptastic">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero wrap">
+    <img class="icon" src="icon.png" alt="Daptastic icon: a gold star on a memory card">
+    <h1>Your favourites, <em>on your player.</em></h1>
+    <p class="lead">Daptastic copies the albums, tracks and playlists you've starred in Navidrome to your digital audio player — the original lossless files, and only what changed since last time. Plug it in, click <strong>Sync Now</strong>, done.</p>
+    <div class="actions">
+      <a class="button primary" id="download" href="https://github.com/hyun007/Daptastic/releases/latest/download/Daptastic.dmg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        Download for macOS
+      </a>
+      <a class="button secondary" href="https://github.com/hyun007/Daptastic">View source on GitHub</a>
+    </div>
+    <p class="fine"><span id="version">Free and open source</span> · macOS 15 or later · <a href="#install">Install notes</a></p>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="section-lead">Daptastic lives in your menu bar. Set it up once; after that your player stays in step with your stars.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Connect to Navidrome</h3>
+          <p>Sign in with your Navidrome account. Daptastic sets up what it needs on the server for you.</p>
+        </div>
+        <div class="step">
+          <h3>Plug in your player</h3>
+          <p>Connect your DAP in USB storage mode, or insert its SD card, and pick it once.</p>
+        </div>
+        <div class="step">
+          <h3>Sync from a notification</h3>
+          <p>Next time you plug it in, a notification offers <strong>Sync Now</strong>. When it's done, another tells you what changed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>What it does</h2>
+      <p class="section-lead">Built for people who self-host their music and care how it sounds.</p>
+      <div class="features">
+        <div class="feature">
+          <h3>Lossless originals</h3>
+          <p>Files come straight from the server, byte for byte. Never transcoded.</p>
+        </div>
+        <div class="feature">
+          <h3>Starred albums, tracks and playlists</h3>
+          <p>Every starred album in full, every starred track, and every playlist. Starred artists are skipped on purpose — one star could pull in hundreds of albums.</p>
+        </div>
+        <div class="feature">
+          <h3>Real playlists on the device</h3>
+          <p>Playlists show up in the player's own Playlists screen, curly quotes and accents included.</p>
+        </div>
+        <div class="feature">
+          <h3>Only what changed</h3>
+          <p>Each sync copies new and updated tracks only. Un-star an album and it's removed next time.</p>
+        </div>
+        <div class="feature">
+          <h3>Careful with your card</h3>
+          <p>It only ever deletes files it put there itself — music you copied yourself is left alone. If your stars suddenly shrink, it asks first.</p>
+        </div>
+        <div class="feature">
+          <h3>Checks space first</h3>
+          <p>If it won't fit, you'll know before a single file is copied — with the largest albums listed, so you know what to un-star.</p>
+        </div>
+        <div class="feature">
+          <h3>Safe to interrupt</h3>
+          <p>Unplug or cancel mid-sync: no half-copied files are left behind, and the next sync picks up where it stopped.</p>
+        </div>
+        <div class="feature">
+          <h3>As fast as your card allows</h3>
+          <p>Downloading and writing overlap, and Spotlight is kept off the card, so syncs run at close to the card's top speed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="wrap two">
+      <div>
+        <h2>You'll need</h2>
+        <ul class="plain">
+          <li>A Mac running <strong>macOS 15</strong> or later.</li>
+          <li>A <a href="https://www.navidrome.org">Navidrome</a> server your Mac can reach (developed against 0.58).</li>
+          <li>A music player that shows up as a USB drive, or its SD card. Built and tested with a <strong>TempoTec Variations V1</strong> (HiBy OS); other HiBy OS players will probably work.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Good to know</h2>
+        <ul class="plain">
+          <li>Your library should be organised as <code>Artist/YYYY - Album/NN - Title</code> — the card mirrors it.</li>
+          <li>Your password stays in your Mac's Keychain, and Daptastic only talks to your own server.</li>
+          <li>Navidrome's player setting "Report Real Path" is switched on for Daptastic automatically.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install</h2>
+      <ol class="install">
+        <li><a href="https://github.com/hyun007/Daptastic/releases/latest/download/Daptastic.dmg">Download Daptastic.dmg</a> and open it.</li>
+        <li>Drag <strong>Daptastic</strong> onto the <strong>Applications</strong> folder.</li>
+        <li>Open Daptastic from Applications. The first time, macOS will say it can't verify the app — click <strong>Done</strong>.</li>
+        <li>Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down to the message about Daptastic and click <strong>Open Anyway</strong>, then confirm.</li>
+        <li>Setup opens and walks you through the rest.</li>
+      </ol>
+      <div class="note">
+        <strong>Why the warning?</strong> Daptastic isn't notarised by Apple yet, which is what removes that message. It's open source, so you can read the code — or build it yourself from the <a href="https://github.com/hyun007/Daptastic">GitHub repository</a>.
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <details>
+        <summary>Will it delete music I put on the card myself?</summary>
+        <p>No. Daptastic keeps a record on the card of every file it copied, and only ever removes files on that list. Everything else on the card is yours and is left alone.</p>
+      </details>
+      <details>
+        <summary>What happens when I un-star something?</summary>
+        <p>It's removed from the card at the next sync. If a large share of your stars disappears at once — or all of them — Daptastic asks before deleting anything, in case it's a mistake.</p>
+      </details>
+      <details>
+        <summary>Does it convert my files?</summary>
+        <p>No. Daptastic uses Navidrome's download endpoint, which returns the original file exactly as stored on your server.</p>
+      </details>
+      <details>
+        <summary>Will it work with my player?</summary>
+        <p>It's built and tested with a TempoTec Variations V1. Any player that mounts as a USB drive will receive the music; the playlists use the format HiBy OS reads, so other HiBy OS players should show them too. Reports for other players are welcome on GitHub.</p>
+      </details>
+      <details>
+        <summary>Why does it ask about my local network?</summary>
+        <p>macOS asks before an app can reach devices on your network. Daptastic needs it to talk to your Navidrome server.</p>
+      </details>
+      <details>
+        <summary>Does it work with other Subsonic servers?</summary>
+        <p>Daptastic is developed against Navidrome, and it relies on Navidrome's "Report Real Path" player setting to mirror your folder layout. Other Subsonic servers aren't supported for now.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Daptastic is free and open source under the <a href="https://github.com/hyun007/Daptastic/blob/main/LICENSE">MIT licence</a>.</span>
+    <span>Not affiliated with Navidrome, HiBy or TempoTec.</span>
+  </div>
+</footer>
+
+<script>
+  // Show the latest release's version and size; the page works without it.
+  fetch("https://api.github.com/repos/hyun007/Daptastic/releases/latest")
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(release => {
+      const dmg = (release.assets || []).find(a => a.name === "Daptastic.dmg");
+      const size = dmg ? ` · ${(dmg.size / 1e6).toFixed(1)} MB` : "";
+      document.getElementById("version").textContent = `Version ${release.tag_name.replace(/^v/, "")}${size} · Free and open source`;
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

@@ -27,6 +27,19 @@ Swift / SwiftUI, built with Xcode. Personal setup, if any, is in `CLAUDE.local.m
   **Eject**), and anything needing a decision (won't fit, delete confirmation, failure — a
   click opens the window). With notifications off it falls back to opening the window.
 
+## Releasing
+
+1. Bump `MARKETING_VERSION` (both configurations in `project.pbxproj`) and, for every
+   release, `CURRENT_PROJECT_VERSION`.
+2. `swift test`, then `scripts/make-dmg.sh` → `dist/Daptastic.dmg` (signed with the
+   identity in the local `Config/Signing.xcconfig`; not notarised, so users get Gatekeeper's
+   "Open Anyway" prompt — the site, README and release notes say so).
+3. `gh release create vX.Y.Z dist/Daptastic.dmg --title "Daptastic X.Y.Z" --notes …`. The
+   asset must stay named `Daptastic.dmg`: the website and README link to
+   `releases/latest/download/Daptastic.dmg`, so they need no change per release.
+4. The website (`site/`, published to GitHub Pages by `.github/workflows/pages.yml` when
+   `site/` changes on `main`) shows the latest release's version and size by itself.
+
 ## Server
 
 - Developed against Navidrome 0.58 (Subsonic API 1.16.1, `openSubsonic: true`). Auth is

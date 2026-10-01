@@ -183,7 +183,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000013 /* Base.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -209,7 +208,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A10000000000000000000013 /* Base.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;

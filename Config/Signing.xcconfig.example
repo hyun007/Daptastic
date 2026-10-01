@@ -1,3 +1,10 @@
 // Copy to Signing.xcconfig (git-ignored) and set your Apple Developer team ID.
 CODE_SIGN_IDENTITY = Apple Development
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+// Optional: let the "player connected" notification through Focus modes. Needs a paid Apple
+// Developer Program team (Personal Teams can't use the capability); automatic signing creates
+// the provisioning profile, so build signed in to Xcode with -allowProvisioningUpdates.
+// Ad-hoc builds must leave it out: claiming it without a profile stops the app launching.
+// CODE_SIGN_STYLE = Automatic
+// CODE_SIGN_ENTITLEMENTS = Config/Daptastic.entitlements

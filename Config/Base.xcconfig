@@ -3,7 +3,11 @@
 // Signing defaults to ad-hoc ("Sign to Run Locally"), so anyone can build. To sign with your
 // own certificate — which keeps the app's Keychain access across rebuilds — copy
 // Signing.xcconfig.example to Signing.xcconfig (git-ignored) and fill in your team.
+CODE_SIGN_STYLE = Manual
 CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 
 #include? "Signing.xcconfig"
+
+// App/Assets.xcassets (and App/AppIcon.icon, once made in Icon Composer).
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon

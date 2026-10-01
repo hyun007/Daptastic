@@ -81,6 +81,17 @@ struct TransferEngineTests {
         #expect(manifest.lastSyncTrackCount == 1)
     }
 
+    @Test func largeFileIsWrittenInOrderAcrossBlocksAndFlushes() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Larger than the 8 MB flush interval, and not a multiple of the 1 MB block size.
+        var generator = SystemRandomNumberGenerator()
+        let bytes = Data((0..<(9 * 1_048_576 + 12_345)).map { _ in UInt8.random(in: 0...255, using: &generator) })
+        let result = try await sync([track("big", "Artist/2000 - Album/01 - Big.flac", bytes: bytes)])
+
+        #expect(result.transferred == 1)
+        #expect(try Data(contentsOf: root.appending(path: "Artist/2000 - Album/01 - Big.flac")) == bytes)
+    }
+
     @Test func subsonicErrorBodyIsNotWrittenToCard() async throws {
         defer { try? FileManager.default.removeItem(at: root) }
         let xml = #"<subsonic-response status="failed"><error code="70" message="Song not found"/></subsonic-response>"#

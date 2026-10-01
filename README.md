@@ -24,8 +24,8 @@ read playlists from `playlist_data/` will probably work too.
   albums are largest, before copying a single byte.
 - **Survives interruptions:** files are written under a temporary name and renamed when
   complete; cancel or unplug mid-sync and the next sync resumes where it stopped.
-- **Prompts on plug-in:** connect the player and Daptastic offers to sync. Optionally opens
-  at login.
+- **Notifies you:** connect the player and a notification offers **Sync Now**; when the sync
+  finishes, another summarises what changed. Optionally opens at login.
 
 ## Requirements
 
@@ -41,16 +41,17 @@ read playlists from `playlist_data/` will probably work too.
    - To sign with your own Apple Development certificate (so the Keychain doesn't ask for
      access after every rebuild), copy `Config/Signing.xcconfig.example` to
      `Config/Signing.xcconfig` and set your team ID. Without it, builds are ad-hoc signed.
-2. **Settings** open on first launch. Enter your Navidrome server and username, enter the
-   password and click **Test Connection** (the password is stored in the Keychain).
-3. **Connect the player** in USB storage mode and choose its card. Music goes at the card
-   root unless you set a music folder.
-4. **In Navidrome**, open Settings → Players, find **`daptastic [Daptastic]`** (it appears
-   after the first connection) and turn on **Report Real Path**. Daptastic needs the real
-   file paths to mirror your library; without it, syncing stops with an explanation.
-5. **Optional but recommended:** add the card to System Settings → Spotlight → Search
-   Privacy. Spotlight indexing a card while it is being written can cut sync speed to a
-   third. (Daptastic also drops a `.metadata_never_index` marker on the card.)
+2. **Setup** opens on first launch:
+   - **Connect to Navidrome** with your server, username and password (kept in the
+     Keychain). Daptastic needs real file paths to mirror your library, so it turns on
+     **Report Real Path** for its own player (`daptastic [Daptastic]`) in Navidrome. If it
+     can't, it explains how to do it in Navidrome's Settings → Players.
+   - **Plug in your player** in USB storage mode (or insert its card) and choose it. Music
+     goes at the card root unless you set a music folder. Spotlight indexing a card while
+     it is being written can cut sync speed to a third, so Daptastic tells Spotlight to
+     skip the card and offers to remount it (it stays plugged in) so that takes effect
+     straight away.
+   - **Open at login**, so plugging in the player offers to sync.
 
 ## Command line
 
@@ -63,6 +64,9 @@ anything; `daptastic sync /Volumes/CARD` runs it.
 - `Sources/DaptasticCore/` holds all sync logic; `swift test` runs its tests.
 - `App/` is the SwiftUI menu-bar app; open `Daptastic.xcodeproj`.
 - `CLAUDE.md` documents the conventions and the device/server quirks found along the way.
+- `scripts/make-dmg.sh` builds `dist/Daptastic.dmg` for drag-to-install testing
+  (`--quarantine` makes Gatekeeper treat it as downloaded); `scripts/reset-for-testing.sh`
+  uninstalls the app and its settings and saved password, to test first-run setup again.
 
 ## License
 

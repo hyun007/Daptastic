@@ -10,6 +10,9 @@ let usage = """
       desired       dump the desired set as JSON to stdout, with a summary on stderr
       plan VOLUME   diff against the card mounted at VOLUME and pre-flight; changes nothing
       sync VOLUME   plan, then transfer and delete; Ctrl-C stops cleanly
+      spotlight VOLUME  stop Spotlight indexing the card: write the marker, then remount it
+      download-test [N]  download the first N tracks of the desired set, discarding them, and
+                    report server response time and throughput (isolates the network side)
 
     options (default to the app's saved settings):
       --server URL  --user NAME  --library-root PATH  --music-folder PATH
@@ -123,6 +126,14 @@ func summarise(_ job: SyncJob, deletesConfirmed: Bool) -> Bool {
     }
 }
 
+/// Collects timing for one request.
+final class Timing: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    var metrics: URLSessionTaskTransactionMetrics?
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        self.metrics = metrics.transactionMetrics.last
+    }
+}
+
 /// Runs `work` so that Ctrl-C cancels it instead of killing the process mid-write.
 func runCancellable(_ work: @escaping @Sendable () async throws -> Void) async throws {
     let task = Task { try await work() }
@@ -162,6 +173,35 @@ do {
         FileHandle.standardOutput.write(try encoder.encode(set))
         print()
         summarise(set)
+    case "download-test":
+        let limit = positional.count > 1 ? Int(positional[1]) ?? .max : .max
+        let client = try client()
+        let tracks = try await DesiredSetBuilder.build(client: client, libraryRoot: settings.libraryRoot).tracks.prefix(limit)
+        var bytes: Int64 = 0
+        var waiting = 0.0
+        let start = Date()
+        for track in tracks {
+            let timing = Timing()
+            let (data, _) = try await URLSession.shared.data(for: client.downloadRequest(songID: track.song.id), delegate: timing)
+            guard let m = timing.metrics, let sent = m.requestStartDate, let first = m.responseStartDate,
+                  let end = m.responseEndDate else { continue }
+            let wait = first.timeIntervalSince(sent), transfer = end.timeIntervalSince(first)
+            waiting += wait
+            bytes += Int64(data.count)
+            note(String(format: "%6.1f MB  first byte %5.0f ms  then %6.1f MB/s  %@", Double(data.count) / 1e6, wait * 1000,
+                        Double(data.count) / max(transfer, 0.001) / 1e6, (track.relativePath as NSString).lastPathComponent))
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        note(String(format: "total %.0f MB in %.1f s = %.1f MB/s; %.1f s of that waiting for first bytes",
+                    Double(bytes) / 1e6, elapsed, Double(bytes) / elapsed / 1e6, waiting))
+    case "spotlight":
+        guard positional.count == 2 else { fail("spotlight needs the card's volume path") }
+        let volume = URL(filePath: positional[1], directoryHint: .isDirectory)
+        note("indexing before: \(Spotlight.isIndexing(volume).map { $0 ? "on" : "off" } ?? "unknown")")
+        Spotlight.writeMarker(on: volume)
+        let mounted = try await VolumeRemount.remount(volume)
+        note("remounted at \(mounted.path)")
+        note("indexing after:  \(Spotlight.isIndexing(mounted).map { $0 ? "on" : "off" } ?? "unknown")")
     case "plan", "sync":
         guard positional.count == 2 else { fail("\(command!) needs the card's volume path") }
         let volume = URL(filePath: positional[1], directoryHint: .isDirectory)

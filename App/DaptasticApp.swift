@@ -24,7 +24,13 @@ struct DaptasticApp: App {
                 .environment(model)
         }
         .windowResizability(.contentSize)
-        // First launch is onboarding: open Settings until the app is set up.
+
+        Window("Set Up Daptastic", id: WindowID.setup) {
+            SetupView()
+                .environment(model)
+        }
+        .windowResizability(.contentSize)
+        // First launch opens setup, until the app is configured.
         .defaultLaunchBehavior(model.isConfigured ? .suppressed : .presented)
     }
 }
@@ -36,14 +42,24 @@ struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Image(systemName: model.isBusy ? "arrow.triangle.2.circlepath" : "music.note.list")
+        Image(glyph)  // Template images: macOS tints them for light and dark menu bars.
             .onChange(of: model.windowRequest) { openWindow.bringToFront(WindowID.sync) }
+    }
+
+    private var glyph: String {
+        switch model.phase {
+        case .preparing, .syncing: "MenuBarSyncing"
+        // The same states that send a "needs you" notification.
+        case .confirmDeletes, .wontFit, .failed: "MenuBarAttention"
+        default: "MenuBarIdle"
+        }
     }
 }
 
 enum WindowID {
     static let sync = "sync"
     static let settings = "settings"
+    static let setup = "setup"
 }
 
 extension OpenWindowAction {

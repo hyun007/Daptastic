@@ -20,6 +20,17 @@ public enum LibraryPathError: Error, LocalizedError, Equatable {
 public enum LibraryPath {
     public static let defaultRoot = "/music"
 
+    /// The library root a real path lives under: `current` if it fits, otherwise worked out from
+    /// the expected `Artist/YYYY - Album/[CD NN/]Track` layout. Nil if the path isn't absolute.
+    public static func root(of path: String, current: String) -> String? {
+        guard path.hasPrefix("/") else { return nil }
+        if (try? relative(path, root: current)) != nil { return current }
+        let parts = path.split(separator: "/")
+        let depth = parts.count >= 2 && parts[parts.count - 2].wholeMatch(of: /CD \d+/) != nil ? 4 : 3
+        guard parts.count > depth else { return nil }
+        return "/" + parts.dropLast(depth).joined(separator: "/")
+    }
+
     /// The path relative to `root`, which is what gets mirrored onto the device.
     public static func relative(_ path: String, root: String) throws -> String {
         let prefix = root.hasSuffix("/") ? root : root + "/"

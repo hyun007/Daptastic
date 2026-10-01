@@ -27,6 +27,7 @@ public struct TransferProgress: Sendable {
 
 public struct SyncResult: Sendable {
     public let transferred: Int
+    public let transferredBytes: Int64
     public let deleted: Int
     /// Deletes that were due but withheld pending confirmation.
     public let withheldDeletes: Int
@@ -111,6 +112,7 @@ public struct TransferEngine: Sendable {
 
         return SyncResult(
             transferred: plan.transfers.count,
+            transferredBytes: overallTotal,
             deleted: applyDeletes ? plan.deletes.count : 0,
             withheldDeletes: applyDeletes ? 0 : plan.deletes.count)
     }
@@ -189,18 +191,37 @@ public struct TransferEngine: Sendable {
     }
 }
 
-/// One `download` request written chunk by chunk to a file handle.
+/// One `download` request streamed to a file handle.
 /// Subsonic reports errors as HTTP 200 with an XML/JSON body, so a non-audio content type is
 /// read as an error rather than written to the card.
+///
+/// Receiving and writing run side by side: the network hands 1 MB blocks to a writer queue and
+/// only waits when that falls 8 MB behind, and the writer flushes to the card every 8 MB.
+/// Otherwise macOS holds the whole download in RAM (exFAT ignores F_NOCACHE) and the card only
+/// catches up at the final flush, so downloading and writing take turns: 10.7 MB/s measured,
+/// exactly what a 33 MB/s download and a 16 MB/s card give one after the other.
 final class StreamingDownload: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    static let blockSize = 1 << 20
+    static let maxBlocksQueued = 8
+    static let flushInterval = 8 << 20
+
     private let handle: FileHandle
     private let path: String
     private let progress: @Sendable (Int64) -> Void
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Int64, Error>?
     private var received: Int64 = 0
+    private var written: Int64 = 0
+    /// Writer-queue only.
+    private var unflushed = 0
     private var errorBody: Data?
     private var failure: Error?
+    /// Received bytes not yet handed to the writer. Only touched from this task's delegate
+    /// callbacks, which are serial.
+    private var pending = Data()
+    private let writer = DispatchQueue(label: "cc.jofam.daptastic.writer")
+    /// Free slots in the buffer between network and card.
+    private let slots = DispatchSemaphore(value: StreamingDownload.maxBlocksQueued)
 
     init(handle: FileHandle, path: String, progress: @escaping @Sendable (Int64) -> Void) {
         self.handle = handle
@@ -238,40 +259,55 @@ final class StreamingDownload: NSObject, URLSessionDataDelegate, @unchecked Send
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        lock.lock()
-        if errorBody != nil {
-            errorBody!.append(data)
-            lock.unlock()
-            return
-        }
-        lock.unlock()
-        do {
-            try handle.write(contentsOf: data)
-        } catch {
-            let posix = (error as NSError).domain == NSPOSIXErrorDomain ? (error as NSError).code : nil
-            let cocoaFull = (error as? CocoaError)?.code == .fileWriteOutOfSpace
-            lock.withLock {
-                failure = (posix == Int(ENOSPC) || cocoaFull) ? TransferError.diskFull(path: path) : error
-            }
-            dataTask.cancel()
-            return
-        }
-        let total = lock.withLock {
+        let isErrorBody = lock.withLock {
+            if errorBody != nil { errorBody!.append(data); return true }
             received += Int64(data.count)
-            return received
+            return false
         }
-        progress(total)
+        guard !isErrorBody else { return }
+        pending.append(data)
+        if pending.count >= Self.blockSize { submitPending(dataTask) }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        let (continuation, outcome): (CheckedContinuation<Int64, Error>?, Result<Int64, Error>) = lock.withLock {
-            defer { self.continuation = nil }
-            if let failure { return (self.continuation, .failure(failure)) }
-            if let error { return (self.continuation, .failure(error)) }
-            if let errorBody { return (self.continuation, .failure(Self.subsonicError(errorBody))) }
-            return (self.continuation, .success(received))
+        if error == nil, lock.withLock({ failure == nil && errorBody == nil }) { submitPending(task) }
+        // Report only once every queued block is on the card.
+        writer.async { [self] in
+            let (continuation, outcome): (CheckedContinuation<Int64, Error>?, Result<Int64, Error>) = lock.withLock {
+                defer { self.continuation = nil }
+                if let failure { return (self.continuation, .failure(failure)) }
+                if let error { return (self.continuation, .failure(error)) }
+                if let errorBody { return (self.continuation, .failure(Self.subsonicError(errorBody))) }
+                return (self.continuation, .success(received))
+            }
+            continuation?.resume(with: outcome)
         }
-        continuation?.resume(with: outcome)
+    }
+
+    /// Hands the buffered bytes to the writer, waiting only if it is `maxBlocksQueued` behind.
+    private func submitPending(_ task: URLSessionTask) {
+        guard !pending.isEmpty else { return }
+        let block = pending
+        pending = Data(capacity: Self.blockSize)
+        slots.wait()
+        writer.async { [self] in
+            defer { slots.signal() }
+            guard lock.withLock({ failure == nil }) else { return }
+            do {
+                try handle.write(contentsOf: block)
+                unflushed += block.count
+                if unflushed >= Self.flushInterval {
+                    try handle.synchronize()
+                    unflushed = 0
+                }
+                progress(lock.withLock { written += Int64(block.count); return written })
+            } catch {
+                let posix = (error as NSError).domain == NSPOSIXErrorDomain ? (error as NSError).code : nil
+                let full = posix == Int(ENOSPC) || (error as? CocoaError)?.code == .fileWriteOutOfSpace
+                lock.withLock { failure = full ? TransferError.diskFull(path: path) : error }
+                task.cancel()
+            }
+        }
     }
 
     /// Best-effort parse of an XML or JSON Subsonic error body.

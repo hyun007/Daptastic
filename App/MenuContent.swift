@@ -7,6 +7,10 @@ struct MenuContent: View {
     var body: some View {
         Text(status)
 
+        if !model.isConfigured {
+            Button("Set Up Daptastic…") { openWindow.bringToFront(WindowID.setup) }
+        }
+
         Button("Sync Now") {
             model.startSync()
             openWindow.bringToFront(WindowID.sync)
@@ -27,6 +31,9 @@ struct MenuContent: View {
 
     private var status: String {
         if !model.isConfigured { return "Not set up" }
+        if case .syncing(let progress?) = model.phase, progress.overallTotal > 0 {
+            return "Syncing… \(Int(Double(progress.overallBytes) / Double(progress.overallTotal) * 100))%"
+        }
         if model.isBusy { return "Syncing…" }
         if let volume = model.targetVolume { return "Card connected: \(volume.name)" }
         return "Card not connected"

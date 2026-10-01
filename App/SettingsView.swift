@@ -5,13 +5,8 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var server = ""
     @State private var password = ""
-    @State private var connection = Connection.untested
+    @State private var connection = ConnectionState.idle
     @State private var loginItemError: String?
-
-    enum Connection: Equatable {
-        case untested, testing, ok
-        case failed(String)
-    }
 
     var body: some View {
         @Bindable var model = model
@@ -39,19 +34,21 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                NotificationStatusRow()
+            }
+
             Section("Navidrome") {
                 TextField("Server", text: $server, prompt: Text("http://navidrome.local:4533"))
                     .onChange(of: server) { commitServer() }
                 TextField("Username", text: $model.settings.username, prompt: Text("Required"))
                 SecureField("Password", text: $password,
                             prompt: Text(model.hasPassword ? "Saved in Keychain" : "Required"))
-                HStack {
-                    Button("Test Connection", action: test)
-                        .disabled(SyncSettings.serverURL(from: server) == nil || model.settings.username.isEmpty
-                                  || (password.isEmpty && !model.hasPassword)
-                                  || connection == .testing)
-                    connectionStatus
-                }
+                Button("Test Connection", action: test)
+                    .disabled(SyncSettings.serverURL(from: server) == nil || model.settings.username.isEmpty
+                              || (password.isEmpty && !model.hasPassword)
+                              || connection == .connecting || connection == .waitingForPermission)
+                ConnectionStatus(state: connection, playersURL: model.navidromePlayersURL, retry: test)
             }
 
             Section {
@@ -62,11 +59,14 @@ struct SettingsView: View {
                         Text("\(model.settings.volumeName ?? "Saved card") (not connected)").tag(String?.some(savedTag))
                     }
                 }
+                if let volume = model.targetVolume {
+                    SpotlightStatusView(volume: volume)
+                }
                 TextField("Music folder", text: $model.settings.musicFolder, prompt: Text("Card root"))
             } header: {
                 Text("Device")
             } footer: {
-                Text("Connect the DAP in USB storage mode to choose its card. Playlists always go in playlist_data/ at the card root.\n\nTip: add the card to System Settings → Spotlight → Search Privacy. Spotlight indexing the card can slow syncing to a third.")
+                Text("Connect the DAP in USB storage mode to choose its card. Playlists always go in playlist_data/ at the card root.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -79,15 +79,6 @@ struct SettingsView: View {
         .frame(width: 480)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { server = model.settings.serverURL?.absoluteString ?? "" }
-    }
-
-    @ViewBuilder private var connectionStatus: some View {
-        switch connection {
-        case .untested: EmptyView()
-        case .testing: ProgressView().controlSize(.small)
-        case .ok: Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-        case .failed(let message): Label(message, systemImage: "xmark.octagon.fill").foregroundStyle(.red).lineLimit(2)
-        }
     }
 
     private var savedTag: String { "saved" }
@@ -109,17 +100,46 @@ struct SettingsView: View {
         }
     }
 
+    /// The same sign-in as setup, so it also switches Report Real Path on if needed.
     private func test() {
-        commitServer()
-        connection = .testing
+        connection = .connecting
         Task {
             do {
-                try await model.testConnection(password: password)
+                connection = .connected(try await model.connect(
+                    server: server, username: model.settings.username, password: password,
+                    waitingForPermission: { connection = .waitingForPermission }))
                 password = ""
-                connection = .ok
+            } catch AppModel.SetupError.localNetworkBlocked {
+                connection = .localNetworkBlocked
             } catch {
                 connection = .failed(error.localizedDescription)
             }
         }
+    }
+}
+
+/// Whether notifications are on, with the way to turn them on.
+private struct NotificationStatusRow: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack {
+            switch model.notificationStatus {
+            case .authorized, .provisional, .ephemeral:
+                Label("Notifications are on", systemImage: "bell.badge")
+                Spacer()
+                Button("Send Test Notification", action: model.sendTestNotification)
+            case .denied:
+                Label("Notifications are off for Daptastic", systemImage: "bell.slash")
+                Spacer()
+                Link("Open Notification Settings", destination: URL(string:
+                    "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=cc.jofam.daptastic")!)
+            default:
+                Label("Notifications aren't set up", systemImage: "bell")
+                Spacer()
+                Button("Turn On") { Task { await model.requestNotifications() } }
+            }
+        }
+        .task { await model.refreshNotificationStatus() }
     }
 }

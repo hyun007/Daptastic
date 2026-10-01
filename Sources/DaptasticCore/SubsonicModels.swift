@@ -74,6 +74,10 @@ public struct SubsonicError: Error, Codable, Sendable, Equatable, LocalizedError
     }
 }
 
+struct SongsContainer: Decodable {
+    let song: [Song]?
+}
+
 struct PlaylistsContainer: Decodable {
     let playlist: [PlaylistSummary]?
 }
@@ -85,6 +89,7 @@ struct ResponseBody: Decodable {
     let album: Album?
     let playlists: PlaylistsContainer?
     let playlist: Playlist?
+    let randomSongs: SongsContainer?
 }
 
 struct Envelope: Decodable {

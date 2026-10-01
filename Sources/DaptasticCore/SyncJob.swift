@@ -51,25 +51,11 @@ public struct SyncJob: Sendable {
         if case .shortfall(let bytes, _) = preflight(deletesConfirmed: deletesConfirmed) {
             throw SyncJobError.wontFit(shortfall: bytes)
         }
-        Self.disableSpotlight(on: volume)
+        Spotlight.writeMarker(on: volume)
         let sync = try await TransferEngine(client: client, musicRoot: settings.musicRoot(onVolume: volume))
             .execute(plan: plan, desired: desired, deletesConfirmed: deletesConfirmed, progress: progress)
         let playlists = try PlaylistWriter(volume: volume, settings: settings).write(desired: desired)
         return Outcome(sync: sync, playlists: playlists)
-    }
-}
-
-extension SyncJob {
-    static let spotlightMarker = ".metadata_never_index"
-
-    /// Spotlight indexing the card reads new files back over USB and cuts sync throughput to
-    /// about a third. This marker at the volume root turns indexing off from the next mount
-    /// (verified: `mdutil -s` then reports "Indexing and searching disabled"). Best effort.
-    static func disableSpotlight(on volume: URL) {
-        let marker = volume.appending(path: spotlightMarker, directoryHint: .notDirectory)
-        if !FileManager.default.fileExists(atPath: marker.path) {
-            FileManager.default.createFile(atPath: marker.path, contents: nil)
-        }
     }
 }
 

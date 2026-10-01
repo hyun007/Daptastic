@@ -160,8 +160,8 @@ struct SpotlightMarkerTests {
         let volume = FileManager.default.temporaryDirectory.appending(path: "daptastic-test-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: volume, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: volume) }
-        SyncJob.disableSpotlight(on: volume)
-        SyncJob.disableSpotlight(on: volume)
+        Spotlight.writeMarker(on: volume)
+        Spotlight.writeMarker(on: volume)
         #expect(try FileManager.default.contentsOfDirectory(atPath: volume.path) == [".metadata_never_index"])
     }
 }

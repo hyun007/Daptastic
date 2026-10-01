@@ -18,6 +18,14 @@ Swift / SwiftUI, built with Xcode. Personal setup, if any, is in `CLAUDE.local.m
   the Keychain item (service `cc.jofam.daptastic.navidrome`). Install with
   `scripts/install-app.sh` (Release → `/Applications`); "Open at login" registers the
   running copy via `SMAppService`, so it must be the installed one.
+- Icons: `App/AppIcon.icon` is the layered Icon Composer app icon (Xcode generates the macOS 15
+  fallback from it); `App/Assets.xcassets` holds the menu-bar template glyphs (idle, syncing,
+  attention). Sources and exports live in `design/icon/` — outside `App/`, so they aren't
+  bundled.
+- The app talks to you through macOS notifications (`App/Notifier.swift`): the card being
+  plugged in (with **Sync Now**, which syncs in the background), sync finished (a summary, with
+  **Eject**), and anything needing a decision (won't fit, delete confirmation, failure — a
+  click opens the window). With notifications off it falls back to opening the window.
 
 ## Server
 
@@ -67,9 +75,11 @@ Swift / SwiftUI, built with Xcode. Personal setup, if any, is in `CLAUDE.local.m
   paths normalisation- and case-insensitively (exFAT is case-insensitive too), and write
   playlist entries NFC.
 - The card sustains ~15 MB/s (fsync'd) over USB. **Spotlight indexing the card cuts sync
-  throughput to roughly a third** by reading new files back over the same link. Each sync
-  writes `.metadata_never_index` at the card root, which disables indexing from the next
-  mount; Settings also suggests excluding the card in Spotlight's Search Privacy.
+  throughput to roughly a third** by reading new files back over the same link. Choosing a
+  card (and every sync) writes `.metadata_never_index` at the card root, which disables
+  indexing from the next mount. Setup and Settings check `mdutil -s` and offer "Remount Card":
+  a DiskArbitration unmount + mount, card still plugged in — verified to flip indexing off.
+  (The App Store sandbox may not allow that unmount; revisit then.)
 - Only files recorded in the on-card manifest (`.daptastic/manifest.json`) are ever deleted;
   anything else on the card is the user's and is left alone.
 - On the V1, `playlist_data/` can be created from the Mac (the HiBy R3's reported "device
@@ -82,5 +92,9 @@ Swift / SwiftUI, built with Xcode. Personal setup, if any, is in `CLAUDE.local.m
   >30% smaller than at the last successful sync, ask the user to confirm before deleting.
 - Write transfers to a temp name and rename on completion, so an interrupted sync
   cannot leave a truncated file that looks complete.
+- Keep downloading and card writes overlapped: `StreamingDownload` hands 1 MB blocks to a
+  writer queue (8 MB buffer) that fsyncs every 8 MB. Without the periodic flush macOS holds the
+  download in RAM and the card only catches up at the final fsync, so the two take turns —
+  10.7 vs 14.9 MB/s measured on a 4.6 GB sync. `F_NOCACHE` does nothing on exFAT.
 - Never publish personal setup (server addresses, account names, team IDs): it belongs in
   `CLAUDE.local.md` or `Config/Signing.xcconfig`, both git-ignored.

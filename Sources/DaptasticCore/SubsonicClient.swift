@@ -75,6 +75,12 @@ public struct SubsonicClient: Sendable {
         return playlist
     }
 
+    /// The path the server reports for one random song, or nil if the library is empty.
+    /// Absolute means Report Real Path is on for this player; relative means made-up paths.
+    public func sampleSongPath() async throws -> String? {
+        try await call("getRandomSongs", ["size": "1"]).randomSongs?.song?.first?.path
+    }
+
     /// Original file bytes, never transcoded. The only transfer endpoint; see CLAUDE.md.
     public func downloadURL(songID: String) -> URL {
         url(for: "download", ["id": songID], json: false)

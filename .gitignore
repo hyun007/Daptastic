@@ -8,3 +8,6 @@ xcuserdata/
 CLAUDE.local.md
 docs/private/
 Config/Signing.xcconfig
+
+# Build output
+dist/

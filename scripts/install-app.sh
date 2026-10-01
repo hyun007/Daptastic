@@ -4,8 +4,13 @@
 set -eu
 cd "$(dirname "$0")/.."
 xcodebuild -project Daptastic.xcodeproj -scheme Daptastic -configuration Release \
-    -derivedDataPath .build/xcode build -quiet
+    -derivedDataPath .build/xcode -allowProvisioningUpdates build -quiet
 osascript -e 'tell application "Daptastic" to quit' 2>/dev/null || true
+# Wait for it to exit, or the relaunch below races the old copy and fails (-600).
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -f /Applications/Daptastic.app/Contents/MacOS/Daptastic >/dev/null || break
+    sleep 1
+done
 rm -rf /Applications/Daptastic.app
 cp -R .build/xcode/Build/Products/Release/Daptastic.app /Applications/
 open /Applications/Daptastic.app

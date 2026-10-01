@@ -6,5 +6,21 @@
     <link>https://hyun007.github.io/Daptastic/</link>
     <description>Updates for Daptastic</description>
     <language>en</language>
+    <item>
+      <title>Version 0.2.0</title>
+      <pubDate>Thu, 01 Oct 2026 03:28:10 GMT</pubDate>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+<p>Daptastic now keeps itself up to date.</p>
+<ul><li><b>Automatic updates:</b> new versions arrive as a notification. Click <b>Install…</b> to see what&#x27;s new and update in place, with no re-downloading and no repeat security prompt.</li><li><b>Check for Updates…</b> in the menu-bar menu, and a &quot;Check for updates automatically&quot; switch in Settings and setup.</li></ul>
+<p><b>Updating from 0.1.0:</b> 0.1.0 can&#x27;t update itself, so install this version by hand once: download Daptastic.dmg and drag it into Applications, replacing the old copy. From here on, updates are automatic.</p>
+<p><b>Requirements:</b> macOS 15 or later, a Navidrome server, and a player that mounts as a USB drive.</p>
+<p><b>First install:</b> this build isn&#x27;t notarised by Apple yet, so the first time you open it macOS says it can&#x27;t verify the app. Go to <b>System Settings → Privacy &amp; Security</b> and click <b>Open Anyway</b>.</p>
+      ]]></description>
+      <enclosure url="https://github.com/hyun007/Daptastic/releases/download/v0.2.0/Daptastic.dmg"
+                 type="application/octet-stream" sparkle:edSignature="R9oBrCR3ZWRHUNxL6ICvapQqDhz8a2ThzKSu8RFPWj0+RsMezhhs1Op9yl3nGDkdjV1LahNSF4JRnOOzhcXYCw==" length="3131699" />
+    </item>
   </channel>
 </rss>

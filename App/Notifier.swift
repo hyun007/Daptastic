@@ -9,10 +9,11 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         case syncFinished = "sync-finished"
         /// Won't fit, delete confirmation, failure: clicking opens the window with details.
         case needsAttention = "needs-attention"
+        case updateAvailable = "update-available"
     }
 
     enum Action: String {
-        case sync, eject
+        case sync, eject, install
         /// The notification itself was clicked.
         case open
     }
@@ -31,6 +32,9 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
                 UNNotificationAction(identifier: Action.eject.rawValue, title: "Eject"),
             ], intentIdentifiers: []),
             UNNotificationCategory(identifier: Kind.needsAttention.rawValue, actions: [], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Kind.updateAvailable.rawValue, actions: [
+                UNNotificationAction(identifier: Action.install.rawValue, title: "Install…"),
+            ], intentIdentifiers: []),
         ])
     }
 

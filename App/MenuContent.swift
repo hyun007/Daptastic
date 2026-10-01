@@ -23,6 +23,7 @@ struct MenuContent: View {
 
         Divider()
 
+        Button("Check for Updates…", action: model.updater.checkForUpdates)
         Button("Settings…") { openWindow.bringToFront(WindowID.settings) }
             .keyboardShortcut(",")
         Button("Quit Daptastic") { NSApp.terminate(nil) }

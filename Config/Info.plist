@@ -9,6 +9,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Sparkle updates: the feed is published with the website; updates must be signed with
+	     the private key matching SUPublicEDKey (see scripts/release.sh). -->
+	<key>SUFeedURL</key>
+	<string>https://hyun007.github.io/Daptastic/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>k4YyE59i06r9fU4xxkPY4k5xS9O439+q6b9pYqLJ6E0=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Daptastic connects to your Navidrome server on the local network to fetch your starred music and playlists.</string>
 </dict>

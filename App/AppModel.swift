@@ -38,6 +38,7 @@ final class AppModel {
     private(set) var loginItemStatus = SMAppService.mainApp.status
     private(set) var notificationStatus = UNAuthorizationStatus.notDetermined
     private let notifier = Notifier()
+    let updater = Updater()
     /// Bumped to ask the UI to bring the sync window forward (see `MenuBarLabel`).
     private(set) var windowRequest = 0
     /// Set when the card disappears mid-sync, so the failure says why.
@@ -53,7 +54,16 @@ final class AppModel {
         refreshCredentials()
         refreshVolumes()
         notifier.onAction = { [weak self] kind, action in self?.handleNotification(kind, action) }
-        Task { await refreshNotificationStatus() }
+        updater.canNotify = { [weak self] in self?.notificationsEnabled ?? false }
+        updater.onUpdateFound = { [weak self] version in
+            self?.notifier.post(.updateAvailable, title: "Daptastic \(version) is available",
+                                body: "Click to see what's new and install it.")
+        }
+        updater.onUpdateSeen = { [weak self] in self?.notifier.remove(.updateAvailable) }
+        Task {
+            await refreshNotificationStatus()
+            updater.start()  // Only now can it tell whether to notify.
+        }
         let center = NSWorkspace.shared.notificationCenter
         observers.append(center.addObserver(forName: NSWorkspace.didMountNotification, object: nil, queue: .main) { [weak self] note in
             let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL
@@ -155,6 +165,7 @@ final class AppModel {
         switch (kind, action) {
         case (.cardConnected, .sync): startSync()  // In the background; the menu bar shows it.
         case (.syncFinished, .eject): eject()
+        case (.updateAvailable, _): updater.checkForUpdates()
         default: windowRequest += 1
         }
     }

@@ -36,6 +36,11 @@ struct SettingsView: View {
 
             Section {
                 NotificationStatusRow()
+                Toggle("Check for updates automatically", isOn: Binding {
+                    model.updater.automaticallyChecks
+                } set: {
+                    model.updater.automaticallyChecks = $0
+                })
             }
 
             Section("Navidrome") {

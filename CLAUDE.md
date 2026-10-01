@@ -29,16 +29,32 @@ Swift / SwiftUI, built with Xcode. Personal setup, if any, is in `CLAUDE.local.m
 
 ## Releasing
 
-1. Bump `MARKETING_VERSION` (both configurations in `project.pbxproj`) and, for every
-   release, `CURRENT_PROJECT_VERSION`.
-2. `swift test`, then `scripts/make-dmg.sh` → `dist/Daptastic.dmg` (signed with the
-   identity in the local `Config/Signing.xcconfig`; not notarised, so users get Gatekeeper's
-   "Open Anyway" prompt — the site, README and release notes say so).
-3. `gh release create vX.Y.Z dist/Daptastic.dmg --title "Daptastic X.Y.Z" --notes …`. The
-   asset must stay named `Daptastic.dmg`: the website and README link to
-   `releases/latest/download/Daptastic.dmg`, so they need no change per release.
-4. The website (`site/`, published to GitHub Pages by `.github/workflows/pages.yml` when
-   `site/` changes on `main`) shows the latest release's version and size by itself.
+`scripts/release.sh X.Y.Z notes.md` does it all, from a clean `main`: bumps
+`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` (Sparkle compares the build number, so it
+must keep increasing), runs `swift test`, builds `dist/Daptastic.dmg`, signs it for Sparkle,
+pushes, creates the GitHub release, then adds the release to the update feed
+(`site/appcast.xml`) and pushes again. The feed entry goes in last, so the app never offers an
+update that can't be downloaded yet.
+
+- **Updates (Sparkle 2):** `App/Updater.swift`. The feed URL and public EdDSA key are in
+  `Config/Info.plist`; the **private key lives in the maintainer's login Keychain** (made with
+  Sparkle's `generate_keys`; the tools are in
+  `.build/xcode/SourcePackages/artifacts/sparkle/Sparkle/bin`). Losing it means installed
+  copies can't verify future updates, so it must stay backed up. A scheduled check that finds
+  an update posts a notification (Sparkle's "gentle reminders"); "Check for Updates…" shows
+  Sparkle's window. Updates installed by Sparkle aren't quarantined, so only the first install
+  meets Gatekeeper.
+- To test an update without publishing: build a higher-numbered copy, sign its DMG with
+  `sign_update`, serve a local appcast with `python3 -m http.server`, and point the installed
+  app at it with `defaults write cc.jofam.daptastic SUFeedURL http://127.0.0.1:PORT/appcast.xml`
+  (delete it afterwards).
+- The DMG must stay named `Daptastic.dmg`: the website and README link to
+  `releases/latest/download/Daptastic.dmg`. The website (`site/`, published to GitHub Pages by
+  `.github/workflows/pages.yml`) shows the latest version and size by itself.
+- Builds are signed with the identity in the local `Config/Signing.xcconfig` and not
+  notarised, so first installs get Gatekeeper's "Open Anyway" prompt — the site, README and
+  release notes say so.
+- Sparkle must not ship in a Mac App Store build (the App Store forbids self-updaters).
 
 ## Server
 

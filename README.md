@@ -29,6 +29,8 @@ read playlists from `playlist_data/` will probably work too.
   complete; cancel or unplug mid-sync and the next sync resumes where it stopped.
 - **Notifies you:** connect the player and a notification offers **Sync Now**; when the sync
   finishes, another summarises what changed. Optionally opens at login.
+- **Updates itself:** new versions arrive as a notification and install in a click (via
+  [Sparkle](https://sparkle-project.org)).
 
 ## Requirements
 

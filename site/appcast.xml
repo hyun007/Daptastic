@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sparkle update feed. scripts/release.sh adds an <item> per release, newest first. -->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Daptastic</title>
+    <link>https://hyun007.github.io/Daptastic/</link>
+    <description>Updates for Daptastic</description>
+    <language>en</language>
+  </channel>
+</rss>

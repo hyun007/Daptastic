@@ -18,6 +18,7 @@ struct SetupView: View {
     @State private var connection = ConnectionState.idle
     @State private var opensAtLogin = true
     @State private var wantsNotifications = true
+    @State private var checksForUpdates = true
     @State private var loginItemError: String?
 
     var body: some View {
@@ -114,6 +115,8 @@ struct SetupView: View {
                     .padding(.top, 8)
                 Text("macOS will ask you to allow notifications. Without them, Daptastic shows a window instead.")
                     .font(.callout).foregroundStyle(.secondary)
+                Toggle("Check for updates automatically", isOn: $checksForUpdates)
+                    .padding(.top, 8)
                 if let loginItemError {
                     Text(loginItemError).font(.callout).foregroundStyle(.red)
                 }
@@ -214,6 +217,7 @@ struct SetupView: View {
             loginItemError = "Couldn't change the login item: \(error.localizedDescription)"
             return
         }
+        model.updater.automaticallyChecks = checksForUpdates
         Task {
             if wantsNotifications && model.notificationStatus == .notDetermined { await model.requestNotifications() }
             move(1)
